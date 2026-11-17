@@ -115,6 +115,9 @@ export default function Navbar() {
                 <Search className="h-4 w-4 text-slate-400" />
                 <input
                   ref={inputRef}
+                  id="global-search"
+                  name="global-search"
+                  aria-label="ค้นหาสโมสร หรือนักเตะ"
                   type="text"
                   value={query}
                   onFocus={() => results && setSearchOpen(true)}

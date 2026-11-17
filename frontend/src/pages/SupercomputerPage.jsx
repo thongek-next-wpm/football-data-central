@@ -244,6 +244,9 @@ export default function SupercomputerPage() {
 
               <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
                 <select
+                  id="supercomputer-home-team"
+                  name="homeTeam"
+                  aria-label="เลือกทีมเหย้า"
                   value={homeId}
                   onChange={(e) => setHomeId(e.target.value)}
                   className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-medium text-white outline-none focus:border-emerald-500"
@@ -258,6 +261,9 @@ export default function SupercomputerPage() {
                 <span className="text-center text-xs font-extrabold text-slate-500">VS</span>
 
                 <select
+                  id="supercomputer-away-team"
+                  name="awayTeam"
+                  aria-label="เลือกทีมเยือน"
                   value={awayId}
                   onChange={(e) => setAwayId(e.target.value)}
                   className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-medium text-white outline-none focus:border-sky-500"

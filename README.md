@@ -79,4 +79,4 @@ npm run dev
 1. ไปที่ Repository บน GitHub → **Settings** → **Pages** → เลือก **Build and deployment Source** เป็น **`GitHub Actions`**
 2. *(ทางเลือก: ดึงข้อมูลจริงขึ้น GitHub Pages)* ไปที่ **Settings** → **Secrets and variables** → **Actions** → เพิ่ม Secret ชื่อ `FOOTBALL_DATA_API_KEY` (Workflow จะอัปเดต Snapshot ให้อัตโนมัติทุก 6 ชั่วโมงและทุกครั้งที่ Push)
 3. *(ทางเลือก: เชื่อม Backend จริงแบบ Real-time)* สามารถ Deploy โฟลเดอร์ `backend/` (ใช้ [render.yaml](render.yaml) หรือ [backend/Dockerfile](backend/Dockerfile)) แล้วนำ URL มาใส่ใน GitHub Actions **Variables** ชื่อ `VITE_API_BASE_URL` (เช่น `https://fdc-backend.onrender.com/api`)
-4. เปิดหน้าเว็บได้ที่ `https://<username>.github.io/football-data-central/`
+4. เปิดหน้าเว็บได้ที่ `https://thongek-next-wpm.github.io/football-data-central/`

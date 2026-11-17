@@ -163,6 +163,9 @@ export default function MatchesPage() {
             <div className="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs">
               <Filter className="h-3.5 w-3.5 text-slate-400" />
               <select
+                id="matchday-filter"
+                name="matchday"
+                aria-label="กรองตาม Matchday"
                 value={matchdayFilter}
                 onChange={(e) => setMatchdayFilter(e.target.value)}
                 className="bg-transparent text-slate-200 outline-none"
@@ -180,6 +183,9 @@ export default function MatchesPage() {
           <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
+              id="matches-team-filter"
+              name="teamSearch"
+              aria-label="กรองชื่อทีม"
               type="text"
               value={teamSearch}
               onChange={(e) => setTeamSearch(e.target.value)}

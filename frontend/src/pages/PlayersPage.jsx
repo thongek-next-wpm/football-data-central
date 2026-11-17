@@ -109,6 +109,9 @@ export default function PlayersPage() {
         <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs">
           <Search className="h-3.5 w-3.5 text-slate-400" />
           <input
+            id="players-search"
+            name="playerSearch"
+            aria-label="ค้นหานักเตะ สัญชาติ หรือสโมสร"
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
