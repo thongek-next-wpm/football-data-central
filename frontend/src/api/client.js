@@ -42,3 +42,14 @@ export const searchEntities = (q) =>
 
 export const triggerManualSync = (code) =>
   api.post(`/system/sync/${code}`).then((res) => res.data);
+
+export const getSupercomputerOverview = () =>
+  api.get('/supercomputer').then((res) => res.data);
+
+export const getCompetitionSupercomputer = (code, params = {}) =>
+  api.get(`/competitions/${code}/supercomputer`, { params }).then((res) => res.data);
+
+export const predictCustomMatchup = (code, homeId, awayId) =>
+  api
+    .get(`/competitions/${code}/supercomputer/matchup`, { params: { homeId, awayId } })
+    .then((res) => res.data);

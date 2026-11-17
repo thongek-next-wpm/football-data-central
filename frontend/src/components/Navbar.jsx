@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Calendar, Home, Search, Trophy, Users } from 'lucide-react';
+import { Activity, Calendar, Cpu, Home, Search, Trophy, Users } from 'lucide-react';
 import { getHealth, searchEntities } from '../api/client';
 import ClubBadge from './ClubBadge';
 import SystemStatusModal from './SystemStatusModal';
@@ -102,6 +102,10 @@ export default function Navbar() {
             <NavLink to="/players" className={linkClass}>
               <Users className="h-4 w-4" />
               <span>นักเตะ & ดาวซัลโว</span>
+            </NavLink>
+            <NavLink to="/supercomputer" className={linkClass}>
+              <Cpu className="h-4 w-4" />
+              <span>Supercomputer</span>
             </NavLink>
           </nav>
 

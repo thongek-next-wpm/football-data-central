@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Flame, ShieldCheck, Trophy, Users } from 'lucide-react';
-import { getOverview, getScorers, getStandings } from '../api/client';
+import { ArrowRight, Calendar, Cpu, Flame, ShieldCheck, Trophy, Users } from 'lucide-react';
+import { getOverview, getScorers, getStandings, getSupercomputerOverview } from '../api/client';
 import ClubBadge from '../components/ClubBadge';
 import DataSourceBanner from '../components/DataSourceBanner';
 import LeagueSelector from '../components/LeagueSelector';
@@ -11,6 +11,7 @@ import StandingsTable from '../components/StandingsTable';
 
 export default function DashboardPage() {
   const [overview, setOverview] = useState(null);
+  const [superOverview, setSuperOverview] = useState(null);
   const [selectedCode, setSelectedCode] = useState('PL');
   const [standingsRes, setStandingsRes] = useState(null);
   const [scorersRes, setScorersRes] = useState(null);
@@ -21,9 +22,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setLoadingOverview(true);
-    getOverview()
-      .then((res) => {
+    Promise.all([getOverview(), getSupercomputerOverview().catch(() => null)])
+      .then(([res, sc]) => {
         setOverview(res);
+        setSuperOverview(sc);
         if (res.highlights?.liveMatches?.length > 0) {
           setMatchTab('live');
         } else {
@@ -94,6 +96,13 @@ export default function DashboardPage() {
               >
                 <Users className="h-4 w-4 text-sky-400" />
                 สถิตินักเตะ & ดาวซัลโว
+              </Link>
+              <Link
+                to="/supercomputer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/25"
+              >
+                <Cpu className="h-4 w-4 text-violet-300" />
+                Supercomputer
               </Link>
             </div>
           </div>
@@ -281,6 +290,63 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* FDC Supercomputer Favorites Strip */}
+      {superOverview?.favorites?.length > 0 && (
+        <section className="space-y-4 rounded-3xl border border-violet-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/35 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+                <Cpu className="h-5 w-5 text-violet-400" />
+                <span>FDC Supercomputer — เต็งแชมป์ทั้ง 8 รายการ (10,000 Simulations)</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                คำนวณความน่าจะเป็นแชมป์ คะแนนคาดการณ์ (xPts) และโอกาสผลบอลจากโมเดล Poisson + Monte Carlo
+              </p>
+            </div>
+            <Link
+              to="/supercomputer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-violet-300 hover:text-violet-200"
+            >
+              <span>เปิด Supercomputer เต็มรูปแบบ</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {superOverview.favorites.map((fav) => {
+              const top = fav.topContenders?.[0];
+              if (!top) return null;
+              return (
+                <Link
+                  key={fav.competition.code}
+                  to={`/supercomputer?league=${fav.competition.code}`}
+                  className="flex items-center justify-between rounded-2xl border border-slate-800/90 bg-slate-950/65 p-3.5 transition hover:border-violet-500/40"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <ClubBadge crest={top.team?.crest} name={top.team?.name} tla={top.team?.tla} size="md" />
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-violet-300">
+                        {fav.competition.name.replace('UEFA ', '')}
+                      </span>
+                      <span className="block truncate text-sm font-bold text-white">
+                        {top.team?.shortName || top.team?.name}
+                      </span>
+                      <span className="block text-[11px] text-slate-400 tabular-nums">
+                        คาดการณ์ {top.projectedPoints} xPts
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right tabular-nums">
+                    <span className="block text-base font-extrabold text-amber-300">{top.titleProb}%</span>
+                    <span className="block text-[10px] text-slate-500">โอกาสแชมป์</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* 8 Competitions Directory Cards */}
       <section className="space-y-4">

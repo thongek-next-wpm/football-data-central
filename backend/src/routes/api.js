@@ -31,6 +31,12 @@ const {
 const { rateLimiter } = require('../services/rateLimiter');
 const { getSyncStatus } = require('../jobs/syncJobs');
 const {
+  buildTeamRatings,
+  predictMatchOutcome,
+  runSupercomputerSimulation,
+  predictSingleMatchFromStandings,
+} = require('../services/supercomputer');
+const {
   buildCrestSvgDataUri,
   getSeedStandings,
   getSeedMatches,
@@ -52,6 +58,23 @@ const PLAYERS_TTL = Number(process.env.CACHE_TTL_PLAYERS) || 14400;
 const MATCHES_TTL = Number(process.env.CACHE_TTL_MATCHES_ACTIVE) || 600;
 
 const manualSyncCooldown = new Map();
+const supercomputerMemo = new Map();
+
+function getCachedSimulation(code, standingsRes, matchesRes, { simulations = 10000, seedOffset = 0 } = {}) {
+  const memoKey = `${code}:${standingsRes?.updatedAt || 'seed'}:${matchesRes?.updatedAt || 'seed'}:${simulations}:${seedOffset}`;
+  if (supercomputerMemo.has(memoKey)) {
+    return supercomputerMemo.get(memoKey);
+  }
+  const result = runSupercomputerSimulation(code, standingsRes?.data, matchesRes?.data, {
+    simulations,
+    seedOffset,
+  });
+  if (supercomputerMemo.size > 60) {
+    supercomputerMemo.clear();
+  }
+  supercomputerMemo.set(memoKey, result);
+  return result;
+}
 
 function buildPlayerStatsFromScorers(personId, playerMatchesData) {
   const pid = Number(personId);
@@ -476,11 +499,21 @@ router.get('/matches/:id', async (req, res) => {
       return res.status(404).json({ error: 'Match not found' });
     }
 
+    const matchObj = matchResult.data;
+    const compCode = resolveCompetitionCode(matchObj.competition?.code);
+    let supercomputer = null;
+    if (compCode) {
+      const sSnap = readFromLocalDisk(`standings:${compCode}`, { allowStale: true });
+      const standingsPayload = sSnap?.data || getSeedStandings(compCode);
+      supercomputer = predictSingleMatchFromStandings(matchObj, standingsPayload);
+    }
+
     res.json({
       ...matchResult,
       data: {
-        match: matchResult.data,
+        match: matchObj,
         head2head: h2hResult?.data || null,
+        supercomputer,
       },
     });
   } catch (err) {
@@ -522,6 +555,7 @@ router.get('/teams/:id', async (req, res) => {
     // Collect standing snapshots & team scorers from cache/seed
     const standingsPositions = [];
     const teamScorers = [];
+    const supercomputerProjections = [];
     const tid = Number(teamId);
 
     for (const comp of COMPETITIONS) {
@@ -534,6 +568,18 @@ router.get('/teams/:id', async (req, res) => {
           competition: comp,
           ...row,
         });
+
+        const mSnap = readFromLocalDisk(`matches:${comp.code}`, { allowStale: true });
+        const matchesPayload = mSnap?.data || getSeedMatches(comp.code);
+        const sim = getCachedSimulation(
+          comp.code,
+          { updatedAt: sSnap?.updatedAt || 'seed', data: standingsPayload },
+          { updatedAt: mSnap?.updatedAt || 'seed', data: matchesPayload }
+        );
+        const simRow = sim.table.find((r) => Number(r.team?.id) === tid);
+        if (simRow) {
+          supercomputerProjections.push({ competition: comp, ...simRow });
+        }
       }
 
       const scSnap = readFromLocalDisk(`scorers:${comp.code}`, { allowStale: true });
@@ -570,6 +616,7 @@ router.get('/teams/:id', async (req, res) => {
         matches: matchesResult?.data?.matches || [],
         standingsPositions,
         teamScorers,
+        supercomputer: supercomputerProjections,
       },
     });
   } catch (err) {
@@ -794,6 +841,140 @@ router.post('/system/sync/:code', async (req, res) => {
       code,
       error: err.message,
     });
+  }
+});
+
+router.get('/supercomputer', (req, res) => {
+  const favorites = [];
+  const featuredMatches = [];
+  let anyDemo = false;
+
+  for (const comp of COMPETITIONS) {
+    const sSnap = readFromLocalDisk(`standings:${comp.code}`, { allowStale: true });
+    const mSnap = readFromLocalDisk(`matches:${comp.code}`, { allowStale: true });
+
+    const standingsRes = sSnap || { source: 'demo-seed', isDemo: true, updatedAt: 'seed', data: getSeedStandings(comp.code) };
+    const matchesRes = mSnap || { source: 'demo-seed', isDemo: true, updatedAt: 'seed', data: getSeedMatches(comp.code) };
+    if (standingsRes.isDemo || matchesRes.isDemo) anyDemo = true;
+
+    const sim = getCachedSimulation(comp.code, standingsRes, matchesRes);
+    const topContenders = sim.table.slice(0, 3);
+    favorites.push({
+      competition: comp,
+      simulations: sim.simulations,
+      executionMs: sim.executionMs,
+      topContenders,
+    });
+
+    for (const mp of sim.matchPredictions.slice(0, 2)) {
+      featuredMatches.push({
+        competition: comp,
+        ...mp,
+      });
+    }
+  }
+
+  featuredMatches.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+  res.json({
+    isDemo: anyDemo,
+    seasonMeta: extractSeasonMeta(null, 'latest'),
+    simulationsPerCompetition: 10000,
+    favorites,
+    featuredMatches: featuredMatches.slice(0, 10),
+  });
+});
+
+router.get('/competitions/:code/supercomputer', async (req, res) => {
+  const code = resolveCompetitionCode(req.params.code);
+  if (!code) {
+    return res.status(404).json({ error: 'Unsupported competition code', requested: req.params.code });
+  }
+
+  const simulations = Math.min(25000, Math.max(1000, Number(req.query.sims) || 10000));
+  const seedOffset = Number(req.query.seed) || 0;
+
+  try {
+    const [standingsRes, matchesRes] = await Promise.all([
+      getCachedOrFetch(
+        `standings:${code}`,
+        STANDINGS_TTL,
+        () => fetchStandings(code, { priority: 'high' }),
+        {
+          meta: { category: 'standings', competitionCode: code },
+          seedFallback: () => getSeedStandings(code),
+        }
+      ),
+      getCachedOrFetch(
+        `matches:${code}`,
+        MATCHES_TTL,
+        () => fetchMatches(code, {}, { priority: 'high' }),
+        {
+          meta: { category: 'matches', competitionCode: code },
+          seedFallback: () => getSeedMatches(code),
+        }
+      ),
+    ]);
+
+    const simulation = getCachedSimulation(code, standingsRes, matchesRes, {
+      simulations,
+      seedOffset,
+    });
+
+    res.json({
+      source: standingsRes.source,
+      isDemo: Boolean(standingsRes.isDemo || matchesRes.isDemo),
+      stale: Boolean(standingsRes.stale || matchesRes.stale),
+      updatedAt: standingsRes.updatedAt,
+      seasonMeta: extractSeasonMeta(standingsRes.data, 'latest'),
+      data: simulation,
+    });
+  } catch (err) {
+    res.status(502).json({ error: 'Unable to run supercomputer simulation', detail: err.message });
+  }
+});
+
+router.get('/competitions/:code/supercomputer/matchup', async (req, res) => {
+  const code = resolveCompetitionCode(req.params.code);
+  if (!code) {
+    return res.status(404).json({ error: 'Unsupported competition code', requested: req.params.code });
+  }
+
+  const homeId = Number(req.query.homeId);
+  const awayId = Number(req.query.awayId);
+  if (!homeId || !awayId || homeId === awayId) {
+    return res.status(400).json({ error: 'Please select two distinct teams (homeId & awayId)' });
+  }
+
+  try {
+    const standingsRes = await getCachedOrFetch(
+      `standings:${code}`,
+      STANDINGS_TTL,
+      () => fetchStandings(code, { priority: 'high' }),
+      {
+        meta: { category: 'standings', competitionCode: code },
+        seedFallback: () => getSeedStandings(code),
+      }
+    );
+
+    const { ratings, avgGoalsPerTeamGame } = buildTeamRatings(standingsRes.data);
+    const homeRating = ratings.get(homeId);
+    const awayRating = ratings.get(awayId);
+    if (!homeRating || !awayRating) {
+      return res.status(404).json({ error: 'Selected teams not found in competition standings' });
+    }
+
+    const pred = predictMatchOutcome(homeRating, awayRating, avgGoalsPerTeamGame);
+    const { _raw, ...cleanPred } = pred;
+
+    res.json({
+      competition: getCompetitionByCode(code),
+      homeTeam: { ...homeRating.team, powerRating: homeRating.powerRating, position: homeRating.position },
+      awayTeam: { ...awayRating.team, powerRating: awayRating.powerRating, position: awayRating.position },
+      prediction: cleanPred,
+    });
+  } catch (err) {
+    res.status(502).json({ error: 'Unable to predict custom matchup', detail: err.message });
   }
 });
 

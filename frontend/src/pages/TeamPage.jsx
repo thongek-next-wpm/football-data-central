@@ -167,6 +167,57 @@ export default function TeamPage() {
         updatedAt={teamRes.updatedAt}
       />
 
+      {team.supercomputer?.length > 0 && (
+        <section className="rounded-2xl border border-violet-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-violet-950/40 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-violet-300">
+              FDC Supercomputer Projection (10,000 Simulations)
+            </h2>
+            <Link
+              to={`/supercomputer?league=${team.supercomputer[0].competition?.code}`}
+              className="text-xs font-semibold text-violet-300 hover:text-violet-200"
+            >
+              ดูจำลองทั้งลีก →
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {team.supercomputer.map((sc) => (
+              <div
+                key={sc.competition?.code}
+                className="grid grid-cols-4 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-center text-xs tabular-nums"
+              >
+                <div className="col-span-4 mb-1 flex items-center justify-between text-left">
+                  <span className="font-semibold text-white">{sc.competition?.name}</span>
+                  <span className="rounded bg-violet-500/20 px-2 py-0.5 text-[11px] font-bold text-violet-300">
+                    Power OVR {sc.powerRating}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400">คาดการณ์คะแนน</span>
+                  <strong className="text-sm text-emerald-400">{sc.projectedPoints}</strong>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400">แชมป์ %</span>
+                  <strong className="text-sm text-amber-300">{sc.titleProb}%</strong>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400">
+                    {sc.competition?.type === 'CUP' ? 'Top 8 %' : 'UCL %'}
+                  </span>
+                  <strong className="text-sm text-emerald-300">{sc.uclProb}%</strong>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400">
+                    {sc.competition?.type === 'CUP' ? 'ตกรอบ %' : 'ตกชั้น %'}
+                  </span>
+                  <strong className="text-sm text-rose-300">{sc.relegationProb}%</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
         {[

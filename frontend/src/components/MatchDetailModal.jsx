@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Shield, X } from 'lucide-react';
 import { getMatchDetail } from '../api/client';
 import ClubBadge from './ClubBadge';
+import WinProbabilityBar from './WinProbabilityBar';
 import { formatThaiDateTime, getMatchStatusBadge } from '../utils/formatters';
 
 export default function MatchDetailModal({ match, onClose }) {
@@ -125,6 +126,16 @@ export default function MatchDetailModal({ match, onClose }) {
             )}
           </div>
         </div>
+
+        {detail?.supercomputer && (
+          <div className="mb-5">
+            <WinProbabilityBar
+              prediction={detail.supercomputer}
+              homeName={activeMatch.homeTeam?.shortName || activeMatch.homeTeam?.name}
+              awayName={activeMatch.awayTeam?.shortName || activeMatch.awayTeam?.name}
+            />
+          </div>
+        )}
 
         <div>
           <h3 className="mb-3 text-sm font-bold text-white">สถิติการพบกัน (Head-to-Head)</h3>

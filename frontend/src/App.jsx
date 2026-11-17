@@ -6,6 +6,7 @@ import MatchesPage from './pages/MatchesPage';
 import PlayersPage from './pages/PlayersPage';
 import TeamPage from './pages/TeamPage';
 import PlayerPage from './pages/PlayerPage';
+import SupercomputerPage from './pages/SupercomputerPage';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/standings" element={<StandingsPage />} />
             <Route path="/matches" element={<MatchesPage />} />
             <Route path="/players" element={<PlayersPage />} />
+            <Route path="/supercomputer" element={<SupercomputerPage />} />
             <Route path="/teams/:id" element={<TeamPage />} />
             <Route path="/players/:id" element={<PlayerPage />} />
           </Routes>
