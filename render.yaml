@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fdc-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FOOTBALL_DATA_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://thongek-next-wpm.github.io
+      - key: ENABLE_DEMO_FALLBACK
+        value: true

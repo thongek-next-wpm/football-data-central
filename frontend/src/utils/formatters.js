@@ -164,6 +164,12 @@ export function getStandingZone(position, competitionMeta) {
 }
 
 export function getSourceLabel(source, isDemo) {
+  if (source === 'github-pages-live-snapshot') {
+    return { text: 'GitHub Pages (Live Snapshot)', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' };
+  }
+  if (source === 'github-pages-static') {
+    return { text: 'GitHub Pages (Static Demo)', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30' };
+  }
   if (isDemo || source?.startsWith('demo')) {
     return {
       text: source === 'demo-tier-fallback' ? 'Demo (Free Tier Restriction)' : 'Demo Dataset',

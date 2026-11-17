@@ -10,7 +10,7 @@ import SupercomputerPage from './pages/SupercomputerPage';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="flex min-h-screen flex-col text-slate-100">
         <Navbar />
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">

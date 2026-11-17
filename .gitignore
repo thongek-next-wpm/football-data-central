@@ -4,5 +4,6 @@ build/
 .env
 .env.local
 backend/data/
+frontend/public/static-api/
 *.log
 .DS_Store
